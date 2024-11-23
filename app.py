@@ -2,6 +2,7 @@ import customtkinter
 from tkinter import ttk
 import os
 from PIL import Image
+import irrigation
 
 # 5-Day Weather Forecast using CTkScrollableFrame
 class ScrollableWeatherFrame(customtkinter.CTkScrollableFrame):
@@ -149,19 +150,17 @@ class App(customtkinter.CTk):
         )
         weather_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
-
-
-
-
-
         # create second frame
-        self.second_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.second_frame = irrigation.IrrigationManagementScreen(self)
 
         # create third frame
         self.third_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
 
         # select default frame
         self.select_frame_by_name("home")
+
+
+    
 
     def select_frame_by_name(self, name):
         # set button color for selected button
