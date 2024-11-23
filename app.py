@@ -1,7 +1,66 @@
 import customtkinter
-from tkinter import ttk
 import os
 from PIL import Image
+import requests
+from geopy.geocoders import Nominatim
+
+stormglass_response = requests.get(
+  'https://api.stormglass.io/v2/bio/point',
+  params={
+    'lat': 58.7984,
+    'lng': 17.8081,
+    'params': ','.join(['soilMoisture', 'soilTemperature'])
+  },
+  headers={
+    'Authorization': 'c1c41686-a87f-11ef-ae24-0242ac130003-c1c4171c-a87f-11ef-ae24-0242ac130003'
+  }
+)
+
+stormglass_data = stormglass_response.json()
+
+weatherapi_response = requests.get(
+    'https://api.weatherapi.com/v1/forecast.json', 
+    params={
+        'key': '2674c07f2c3040648d5213927242211',
+        'q': "Atlanta",
+        'days': 10
+    }
+)
+
+weatherapi_data = weatherapi_response.json()
+
+# Initialize lists to hold daily averages
+average_temperatures = []
+average_cloud_covers = []
+average_precipitations = []
+
+# Loop through each day's data
+for day in weatherapi_data['forecast']['forecastday']:
+    total_temp = 0
+    total_cloud = 0
+    total_precip = 0
+    count = 0
+
+    # Loop through the hourly data for the day
+    for hour in day['hour']:
+        total_temp += hour['temp_c']
+        total_cloud += hour['cloud']
+        total_precip += hour['precip_in']
+        count += 1
+
+    # Calculate daily averages
+    avg_temp = round(total_temp / count)
+    avg_cloud = round(total_cloud / count)
+    avg_precip = round(total_precip / count)
+
+    # Append the averages to the respective lists
+    average_temperatures.append(avg_temp)
+    average_cloud_covers.append(avg_cloud)
+    average_precipitations.append(avg_precip)
+
+
+
+
 
 # 5-Day Weather Forecast using CTkScrollableFrame
 class ScrollableWeatherFrame(customtkinter.CTkScrollableFrame):
@@ -24,19 +83,15 @@ class ScrollableWeatherFrame(customtkinter.CTkScrollableFrame):
             precip_label.grid(row=index, column=3, padx=10, pady=(5, 0), sticky="w")
 
 
-# Example Forecast Data
-forecast_data = [
-    {"day": "Day 1", "temp": "20°C", "cloud_cover": "25%", "precip": "5%"},
-    {"day": "Day 2", "temp": "22°C", "cloud_cover": "50%", "precip": "10%"},
-    {"day": "Day 3", "temp": "18°C", "cloud_cover": "10%", "precip": "0%"},
-    {"day": "Day 4", "temp": "21°C", "cloud_cover": "30%", "precip": "15%"},
-    {"day": "Day 5", "temp": "19°C", "cloud_cover": "40%", "precip": "20%"},
-    {"day": "Day 6", "temp": "20°C", "cloud_cover": "25%", "precip": "5%"},
-    {"day": "Day 7", "temp": "22°C", "cloud_cover": "50%", "precip": "10%"},
-    {"day": "Day 8", "temp": "18°C", "cloud_cover": "10%", "precip": "0%"},
-    {"day": "Day 9", "temp": "21°C", "cloud_cover": "30%", "precip": "15%"},
-    {"day": "Day 10", "temp": "19°C", "cloud_cover": "40%", "precip": "20%"}\
-]
+forecast_data = []
+for i in range(len(average_temperatures)):
+    day_data = {
+        "day": f"Day {i + 1}",
+        "temp": f"{average_temperatures[i]}°C",
+        "cloud_cover": f"{average_cloud_covers[i]}%",
+        "precip": f"{average_precipitations[i]} in"
+    }
+    forecast_data.append(day_data)
 
 
 
@@ -103,10 +158,13 @@ class App(customtkinter.CTk):
         self.dashboard_title.grid(row=0, column=0, padx=20, pady=10, sticky="w")
 
         # Soil Moisture Level Progress Bar
-        self.moisture_bar_label = customtkinter.CTkLabel(self.home_frame, text="Soil Moisture Level:", font=("Arial", 14))
-        self.moisture_bar_label.grid(row=1, column=0, padx=20, sticky="w")
+        soil_moisture = 0.5 #stormglass_data['hours'][0]['soilMoisture']['noaa']
 
-        soil_moisture = 0.9
+        self.moisture_bar_label = customtkinter.CTkLabel(self.home_frame, text=f"Soil Moisture Level: ({soil_moisture} m\u00b3/m\u00b3)", font=("Arial", 14))
+        self.moisture_bar_label.grid(row=1, column=0, padx=20, sticky="w")
+        self.moisture_bar_value = customtkinter.CTkLabel(self.home_frame, text=str(soil_moisture), font=("Arial", 14))
+
+        
 
         if soil_moisture < 0.4:
             self.moisture_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("red", "red"))
@@ -121,22 +179,33 @@ class App(customtkinter.CTk):
         self.moisture_bar.set(soil_moisture)
 
         # Soil Temperature Level Progress Bar
-        self.soil_temperature_bar_label = customtkinter.CTkLabel(self.home_frame, text="Soil Temperature Level:", font=("Arial", 14))
+        soil_temperature = 10 #stormglass_data['hours'][1]['soilTemperature']['noaa']
+
+        self.soil_temperature_bar_label = customtkinter.CTkLabel(self.home_frame, text=f"Soil Temperature Level: ({soil_temperature}'\u00b0'C)", font=("Arial", 14))
         self.soil_temperature_bar_label.grid(row=3, column=0, padx=20, pady=10, sticky="w")
 
-        soil_temperature = 18
-
-        if soil_temperature/40 < 0.375:
+        if soil_temperature < 0:
             self.soil_temperature_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("blue", "blue"))
             self.soil_temperature_bar.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+            self.soil_temperature_bar.set(0.1)
+        if soil_temperature > 40:
+            self.soil_temperature_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("red", "red"))
+            self.soil_temperature_bar.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+            self.soil_temperature_bar.set(1)
+        elif soil_temperature/40 < 0.375:
+            self.soil_temperature_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("blue", "blue"))
+            self.soil_temperature_bar.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+            self.soil_temperature_bar.set(soil_temperature/40)
         elif soil_temperature/40 >= 0.375 and soil_moisture/40 <= 0.55:
             self.soil_temperature_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("green", "green"))
             self.soil_temperature_bar.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+            self.soil_temperature_bar.set(soil_temperature/40)
         else:
             self.soil_temperature_bar = customtkinter.CTkProgressBar(self.home_frame, orientation="horizontal", progress_color=("red", "red"))
             self.soil_temperature_bar.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+            self.soil_temperature_bar.set(soil_temperature/40)
 
-        self.soil_temperature_bar.set(soil_temperature/40)
+        
 
         #5-Day weather forecast
         weather_frame = ScrollableWeatherFrame(
