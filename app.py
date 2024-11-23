@@ -1,6 +1,7 @@
 import customtkinter
 import os
 from PIL import Image
+import irrigation
 import requests
 from geopy.geocoders import Nominatim
 
@@ -57,10 +58,6 @@ for day in weatherapi_data['forecast']['forecastday']:
     average_temperatures.append(avg_temp)
     average_cloud_covers.append(avg_cloud)
     average_precipitations.append(avg_precip)
-
-
-
-
 
 # 5-Day Weather Forecast using CTkScrollableFrame
 class ScrollableWeatherFrame(customtkinter.CTkScrollableFrame):
@@ -218,19 +215,17 @@ class App(customtkinter.CTk):
         )
         weather_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
-
-
-
-
-
         # create second frame
-        self.second_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.second_frame = irrigation.IrrigationManagementScreen(self)
 
         # create third frame
         self.third_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
 
         # select default frame
         self.select_frame_by_name("home")
+
+
+    
 
     def select_frame_by_name(self, name):
         # set button color for selected button
