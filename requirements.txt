@@ -3,3 +3,5 @@ matplotlib
 pillow
 geopy
 requests
+pyrebase
+pyyaml

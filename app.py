@@ -4,6 +4,12 @@ from PIL import Image
 import irrigation
 import requests
 from geopy.geocoders import Nominatim
+import yaml
+
+with open('auth.yaml', 'r') as file:
+    auth = yaml.safe_load(file)
+
+
 
 stormglass_response = requests.get(
   'https://api.stormglass.io/v2/bio/point',
@@ -13,7 +19,7 @@ stormglass_response = requests.get(
     'params': ','.join(['soilMoisture', 'soilTemperature'])
   },
   headers={
-    'Authorization': 'c1c41686-a87f-11ef-ae24-0242ac130003-c1c4171c-a87f-11ef-ae24-0242ac130003'
+    'Authorization': auth['stormglass']['apiKey']
   }
 )
 
@@ -22,7 +28,7 @@ stormglass_data = stormglass_response.json()
 weatherapi_response = requests.get(
     'https://api.weatherapi.com/v1/forecast.json', 
     params={
-        'key': '2674c07f2c3040648d5213927242211',
+        'key': auth['weatherapi']['apiKey'],
         'q': "Atlanta",
         'days': 10
     }
@@ -108,8 +114,6 @@ class App(customtkinter.CTk):
         # load images with light and dark mode image
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
         self.logo_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "CustomTkinter_logo_single.png")), size=(26, 26))
-        self.large_test_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "large_test_image.png")), size=(500, 150))
-        self.image_icon_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "image_icon_light.png")), size=(20, 20))
         self.home_image = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "home_dark.png")),
                                                  dark_image=Image.open(os.path.join(image_path, "home_light.png")), size=(20, 20))
         self.chat_image = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "chat_dark.png")),
